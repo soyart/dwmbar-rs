@@ -44,13 +44,11 @@ pub(crate) fn get() -> String {
     if backlight_paths.is_empty() {
         return String::from("null");
     }
-    let brightnesses: Vec<(usize, usize)> = backlight_paths
-        .iter()
-        .filter_map(get_brightness)
-        .collect();
+    let brightnesses: Vec<(usize, usize)> =
+        backlight_paths.iter().filter_map(get_brightness).collect();
 
     if brightnesses.is_empty() {
         return String::from("null");
     }
-    return Brightness(brightnesses).to_string();
+    Brightness(brightnesses).to_string()
 }

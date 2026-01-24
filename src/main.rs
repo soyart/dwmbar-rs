@@ -108,5 +108,5 @@ fn main() {
 }
 
 fn initializing() -> String {
-    return String::from("initializing...");
+    String::from("initializing...")
 }
