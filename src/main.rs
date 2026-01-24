@@ -27,16 +27,11 @@ impl<'a> std::fmt::Display for Bar<'a> {
 
 impl<'a> Bar<'a> {
     fn update(&mut self, key: &'a str, value: String) {
-        let current = self.to_string();
         for t in &mut self.values {
-            if t.0 != key {
-                continue;
+            if t.0 == key {
+                t.1 = value.clone();
+                return;
             }
-            t.1 = value.clone();
-        }
-        let updated = self.to_string();
-        if current != updated {
-            println!("{updated}");
         }
     }
 }
@@ -60,19 +55,26 @@ fn run(title: &str, mut timers: Vec<Timer>) {
 
     loop {
         let now = Instant::now();
+        let mut updated = false;
         for (i, timer) in timers.iter_mut().enumerate() {
-            let mut value = lasts.get(i).unwrap().to_owned();
             // Run all due timers
             if now >= timer.next_fire {
+                // Only apply updates if field value changed from last
+                let last = lasts.get(i).unwrap();
                 let result = (timer.action)();
-                if result.as_str() == value.as_str() {
+                if result.as_str() == last.as_str() {
                     continue;
                 }
-                value = result;
-                lasts.insert(i, value.clone());
-                bar.update(timer.key, value);
+
+                updated = true;
+                lasts[i] = result.clone();
                 timer.next_fire = now + timer.interval;
+                bar.update(timer.key, result);
             }
+        }
+
+        if updated {
+            println!("{}", bar);
         }
 
         // Find the soonest next timer
