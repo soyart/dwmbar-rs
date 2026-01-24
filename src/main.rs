@@ -51,17 +51,26 @@ struct Timer<'a> {
 // run is a event-loop polling mechanism for our status bar.
 fn run(title: &str, mut timers: Vec<Timer>) {
     let mut bar = Bar {
-        title: title,
+        title,
         values: timers.iter().map(|t| (t.key, initializing())).collect(),
     };
 
+    let mut lasts: Vec<String> =
+        timers.iter().map(|_| String::default()).collect();
+
     loop {
         let now = Instant::now();
-        for timer in &mut timers {
+        for (i, timer) in timers.iter_mut().enumerate() {
+            let mut value = lasts.get(i).unwrap().to_owned();
             // Run all due timers
             if now >= timer.next_fire {
                 let result = (timer.action)();
-                bar.update(timer.key, result);
+                if result.as_str() == value.as_str() {
+                    continue;
+                }
+                value = result;
+                lasts.insert(i, value.clone());
+                bar.update(timer.key, value);
                 timer.next_fire = now + timer.interval;
             }
         }
