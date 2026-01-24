@@ -1,5 +1,6 @@
 mod brightness;
 mod clock;
+mod fans;
 mod sysfs;
 use std::time::{
     Duration,
@@ -92,6 +93,12 @@ fn main() {
                 next_fire: now,
                 interval: Duration::from_secs(1),
                 action: || String::from("key1 value"),
+            },
+            Poller {
+                key: "fans",
+                next_fire: now,
+                interval: Duration::from_millis(500),
+                action: fans::get,
             },
             Poller {
                 key: "brightness",

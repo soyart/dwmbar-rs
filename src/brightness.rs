@@ -2,6 +2,8 @@ use crate::sysfs;
 use std::fs;
 use std::path::PathBuf;
 
+const PATTERN: &str = "/sys/class/backlight/*";
+
 // Brightness represents brightness on multiple displays
 pub(crate) struct Brightness(pub(crate) Vec<(usize, usize)>);
 
@@ -39,7 +41,6 @@ fn get_brightness(path: &PathBuf) -> Option<(usize, usize)> {
 }
 
 pub(crate) fn get() -> String {
-    const PATTERN: &str = "/sys/class/backlight/*";
     let backlight_paths = sysfs::find_all_matches(PATTERN);
     if backlight_paths.is_empty() {
         return String::from("null");
