@@ -1,5 +1,6 @@
 mod brightness;
 mod clock;
+mod sysfs;
 use std::time::{
     Duration,
     Instant,
