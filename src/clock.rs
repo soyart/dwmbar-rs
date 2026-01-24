@@ -1,4 +1,5 @@
+use chrono::Local;
+
 pub(crate) fn get() -> String {
-    // TODO: return time now formatted
-    String::from("some_date")
+    Local::now().format("%A, %b %d > %H:%M").to_string()
 }
