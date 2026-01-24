@@ -16,21 +16,21 @@ jobs:
           - nightly
     steps:
       - name: Checkout sources (${{ matrix.toolchain }})
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install Rust toolchain ${{ matrix.toolchain }}
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@master
         with:
           toolchain: ${{ matrix.toolchain }}
           profile: minimal
           override: true # Make cargo workflows uses nightly
 
       - name: Check with `cargo check` on toolchain ${{ matrix.toolchain }}
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@master
         with:
           command: check
 
       - name: Test with `cargo test` on toolchain ${{ matrix.toolchain }}
-        uses: actions-rs/cargo@v1
+        uses: actions-rs/cargo@master
         with:
           command: test
