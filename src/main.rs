@@ -60,26 +60,23 @@ fn run(title: &str, mut timers: Vec<Timer>) {
             // Run all due timers
             if now >= timer.next_fire {
                 // Only apply updates if field value changed from last
-                let last = lasts.get(i).unwrap();
                 let result = (timer.action)();
-                if result.as_str() == last.as_str() {
+                if lasts.get(i).unwrap() == result.as_str() {
                     continue;
                 }
-
                 updated = true;
                 lasts[i] = result.clone();
                 timer.next_fire = now + timer.interval;
                 bar.update(timer.key, result);
             }
         }
-
         if updated {
             println!("{}", bar);
         }
 
         // Find the soonest next timer
         let next = timers.iter().map(|t| t.next_fire).min().unwrap();
-        // Sleep until then (no busy-waiting!)
+        // Sleep until then (no busy-waiting)
         std::thread::sleep(next - Instant::now());
     }
 }
