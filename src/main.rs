@@ -1,11 +1,15 @@
 mod brightness;
-use std::time::{Duration, Instant};
+mod clock;
+use std::time::{
+    Duration,
+    Instant,
+};
 
 // Bar is our text-based status bar.
 // It heavily relies on String as means of abstraction
 struct Bar<'a> {
     // title of the whole bar
-    title: String,
+    title: &'a str,
     // vector of (key, value)
     values: Vec<(&'a str, String)>,
 }
@@ -44,14 +48,11 @@ struct Timer<'a> {
 }
 
 // run is a event-loop polling mechanism for our status bar.
-fn run(mut timers: Vec<Timer>) {
+fn run(title: &str, mut timers: Vec<Timer>) {
     let mut bar = Bar {
-        title: String::from("dwmbar-rs"),
-        values: Vec::with_capacity(timers.len()),
+        title: title,
+        values: timers.iter().map(|t| (t.key, initializing())).collect(),
     };
-    for t in &timers {
-        bar.values.push((t.key, initializing()));
-    }
 
     loop {
         let now = Instant::now();
@@ -81,23 +82,20 @@ fn main() {
             action: || String::from("key1 value"),
         },
         Timer {
-            key: "key2",
-            next_fire: now,
-            interval: Duration::from_secs(2),
-            action: || String::from("key2 value"),
-        },
-        Timer {
             key: "brightness",
             next_fire: now,
             interval: Duration::from_secs(3),
-            action: || {
-                let brightness = brightness::Brightness(vec![(100, 80), (100, 60), (255, 67)]);
-                brightness.to_string()
-            },
+            action: brightness::get,
+        },
+        Timer {
+            key: "clock",
+            next_fire: now,
+            interval: Duration::from_millis(500),
+            action: clock::get,
         },
     ];
 
-    run(timers);
+    run("dwmbar-rs", timers);
 }
 
 fn initializing() -> String {

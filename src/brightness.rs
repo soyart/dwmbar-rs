@@ -1,5 +1,5 @@
 // Brightness represents brightness on multiple displays
-pub struct Brightness(pub Vec<(usize, usize)>);
+pub(crate) struct Brightness(pub(crate) Vec<(usize, usize)>);
 
 impl std::fmt::Display for Brightness {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -11,4 +11,9 @@ impl std::fmt::Display for Brightness {
         }
         Ok(())
     }
+}
+
+pub(crate) fn get() -> String {
+    // TODO: implement
+    format!("{}", Brightness(vec![(100, 80), (255, 85), (1024, 256)]))
 }
