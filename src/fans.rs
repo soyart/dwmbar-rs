@@ -30,10 +30,9 @@ fn parse_rpm(s: &str) -> Option<u32> {
 }
 
 fn get_fans(fan_paths: &[PathBuf], limit: usize) -> Fans {
-    let effective_limit = if limit <= 0 {
-        fan_paths.len()
-    } else {
-        limit.min(fan_paths.len())
+    let effective_limit = match limit {
+        0 => fan_paths.len(),
+        _ => limit.min(fan_paths.len()),
     };
 
     let mut rpms = Vec::with_capacity(effective_limit);
