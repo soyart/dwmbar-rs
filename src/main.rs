@@ -1,5 +1,7 @@
 mod brightness;
 mod clock;
+mod fans;
+mod sysfs;
 use std::time::{
     Duration,
     Instant,
@@ -26,21 +28,16 @@ impl<'a> std::fmt::Display for Bar<'a> {
 
 impl<'a> Bar<'a> {
     fn update(&mut self, key: &'a str, value: String) {
-        let current = self.to_string();
         for t in &mut self.values {
-            if t.0 != key {
-                continue;
+            if t.0 == key {
+                t.1 = value.clone();
+                return;
             }
-            t.1 = value.clone();
-        }
-        let updated = self.to_string();
-        if current != updated {
-            println!("{updated}");
         }
     }
 }
 
-struct Timer<'a> {
+struct Poller<'a> {
     key: &'a str,
     next_fire: Instant,
     interval: Duration,
@@ -48,56 +45,77 @@ struct Timer<'a> {
 }
 
 // run is a event-loop polling mechanism for our status bar.
-fn run(title: &str, mut timers: Vec<Timer>) {
+fn run(title: &str, mut pollers: Vec<Poller>) {
     let mut bar = Bar {
-        title: title,
-        values: timers.iter().map(|t| (t.key, initializing())).collect(),
+        title,
+        values: pollers.iter().map(|t| (t.key, initializing())).collect(),
     };
+
+    let mut lasts: Vec<String> =
+        pollers.iter().map(|_| String::default()).collect();
 
     loop {
         let now = Instant::now();
-        for timer in &mut timers {
-            // Run all due timers
-            if now >= timer.next_fire {
-                let result = (timer.action)();
-                bar.update(timer.key, result);
-                timer.next_fire = now + timer.interval;
+        let mut updated = false;
+        for (i, poller) in pollers.iter_mut().enumerate() {
+            // Skip undued pollers
+            if now < poller.next_fire {
+                continue;
             }
+            // Only apply updates if field value changed from last
+            let result = (poller.action)();
+            if lasts[i] == result {
+                continue;
+            }
+            updated = true;
+            lasts[i] = result.clone();
+            poller.next_fire = now + poller.interval;
+            bar.update(poller.key, result);
+        }
+        if updated {
+            println!("{}", bar);
         }
 
-        // Find the soonest next timer
-        let next = timers.iter().map(|t| t.next_fire).min().unwrap();
-        // Sleep until then (no busy-waiting!)
+        // Find the soonest next poller
+        let next = pollers.iter().map(|t| t.next_fire).min().unwrap();
+        // Sleep until then (no busy-waiting)
         std::thread::sleep(next - Instant::now());
     }
 }
 
 fn main() {
     let now = Instant::now();
-    let timers = vec![
-        Timer {
-            key: "key1",
-            next_fire: now,
-            interval: Duration::from_secs(1),
-            action: || String::from("key1 value"),
-        },
-        Timer {
-            key: "brightness",
-            next_fire: now,
-            interval: Duration::from_secs(3),
-            action: brightness::get,
-        },
-        Timer {
-            key: "clock",
-            next_fire: now,
-            interval: Duration::from_millis(500),
-            action: clock::get,
-        },
-    ];
-
-    run("dwmbar-rs", timers);
+    run(
+        "dwmbar-rs",
+        vec![
+            Poller {
+                key: "key1",
+                next_fire: now,
+                interval: Duration::from_secs(1),
+                action: || String::from("key1 value"),
+            },
+            Poller {
+                key: "fans",
+                next_fire: now,
+                interval: Duration::from_millis(500),
+                action: fans::get,
+            },
+            Poller {
+                key: "brightness",
+                next_fire: now,
+                interval: Duration::from_millis(500),
+                action: brightness::get,
+            },
+            Poller {
+                key: "clock",
+                next_fire: now,
+                interval: Duration::from_millis(500),
+                action: clock::get,
+            },
+        ],
+    );
 }
 
 fn initializing() -> String {
-    return String::from("initializing...");
+    String::from("initializing...")
 }
