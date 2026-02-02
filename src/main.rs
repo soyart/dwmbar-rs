@@ -36,6 +36,7 @@ struct Poller<'a> {
 // poll is a event-loop polling mechanism for our status bar.
 // Currently, dwmbar-rs only supports simple pollers.
 fn poll(title: &str, mut pollers: Vec<Poller>) {
+    let mut next = Instant::now(); // Next (i.e. earliest) call to poller
     let mut bar = Bar {
         title,
         values: pollers.iter().map(|t| (t.key, initializing())).collect(),
@@ -52,24 +53,27 @@ fn poll(title: &str, mut pollers: Vec<Poller>) {
             if now < poller.next_fire {
                 continue;
             }
+            // New next_fire for poller
+            poller.next_fire = now + poller.interval;
+            if poller.next_fire < next {
+                next = poller.next_fire;
+            }
             // Only apply updates if field value changed from last
             let result = (poller.action)();
             if lasts[i] == result {
                 continue;
             }
+
             updated = true;
             lasts[i] = result.clone();
             bar.values[i].1 = result;
-            poller.next_fire = now + poller.interval;
         }
         if updated {
             println!("{}", bar);
         }
 
-        // Find the soonest next poller
-        let next = pollers.iter().map(|t| t.next_fire).min().unwrap();
         // Sleep until then (no busy-waiting)
-        std::thread::sleep(next - Instant::now());
+        std::thread::sleep(next - now);
     }
 }
 
