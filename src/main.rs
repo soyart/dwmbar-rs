@@ -110,7 +110,7 @@ fn main() {
                 key: "clock",
                 next_fire: now,
                 interval: Duration::from_millis(500),
-                action: clock::get,
+                action: || clock::get(clock::CLOCK_DEFAULT.to_owned())(),
             },
         ],
     );
