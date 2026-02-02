@@ -64,7 +64,7 @@ fn run(title: &str, mut pollers: Vec<Poller>) {
             }
             // Only apply updates if field value changed from last
             let result = (poller.action)();
-            if lasts.get(i).unwrap() == result.as_str() {
+            if lasts[i] == result {
                 continue;
             }
             updated = true;
