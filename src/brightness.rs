@@ -1,6 +1,5 @@
 use crate::sysfs;
-use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 
 const PATTERN: &str = "/sys/class/backlight/*";
 
@@ -19,37 +18,33 @@ impl std::fmt::Display for Brightness {
     }
 }
 
-fn read_file(path: &PathBuf) -> Option<String> {
-    fs::read_to_string(path).ok().map(|s| s.trim().to_string())
-}
-
-fn parse_uint(s: &str) -> Option<usize> {
-    s.trim().parse().ok()
-}
-
-fn get_brightness(path: &PathBuf) -> Option<(usize, usize)> {
-    let brightness_file = path.join("brightness");
-    let max_brightness_file = path.join("max_brightness");
-
-    let value_str = read_file(&brightness_file)?;
-    let max_str = read_file(&max_brightness_file)?;
-
-    let value = parse_uint(&value_str)?;
-    let max = parse_uint(&max_str)?;
+fn get_brightness(path: &Path) -> Option<(usize, usize)> {
+    let value = {
+        let s: &str = &sysfs::read_file(&path.join("brightness"))?;
+        s.trim().parse().ok()
+    }?;
+    let max = {
+        let s: &str = &sysfs::read_file(&path.join("max_brightness"))?;
+        s.trim().parse().ok()
+    }?;
 
     Some((max, value))
 }
 
 pub(crate) fn get() -> String {
-    let backlight_paths = sysfs::find_all_matches(PATTERN);
+    let backlight_paths = sysfs::find_matches(PATTERN);
     if backlight_paths.is_empty() {
         return String::from("null");
     }
-    let brightnesses: Vec<(usize, usize)> =
-        backlight_paths.iter().filter_map(get_brightness).collect();
+    let brightnesses: Vec<(usize, usize)> = backlight_paths
+        .iter()
+        .map(|pb| pb.as_path())
+        .filter_map(get_brightness)
+        .collect();
 
     if brightnesses.is_empty() {
         return String::from("null");
     }
+
     Brightness(brightnesses).to_string()
 }

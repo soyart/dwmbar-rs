@@ -1,5 +1,4 @@
 use crate::sysfs;
-use std::fs;
 use std::path::PathBuf;
 
 const PATTERN: &str = "/sys/class/hwmon/hwmon*/fan*_input";
@@ -21,14 +20,6 @@ impl std::fmt::Display for Fans {
     }
 }
 
-fn read_file(path: &PathBuf) -> Option<String> {
-    fs::read_to_string(path).ok().map(|s| s.trim().to_string())
-}
-
-fn parse_rpm(s: &str) -> Option<u32> {
-    s.trim().parse().ok()
-}
-
 fn get_fans(fan_paths: &[PathBuf], limit: usize) -> Fans {
     let effective_limit = match limit {
         0 => fan_paths.len(),
@@ -37,11 +28,14 @@ fn get_fans(fan_paths: &[PathBuf], limit: usize) -> Fans {
 
     let mut rpms = Vec::with_capacity(effective_limit);
     for fan_file in fan_paths.iter().take(effective_limit) {
-        if let Some(state) = read_file(fan_file) {
+        if let Some(state) = sysfs::read_file(fan_file) {
             if state.is_empty() {
                 continue;
             }
-            if let Some(rpm) = parse_rpm(&state) {
+            if let Some(rpm) = {
+                let s: &str = &state;
+                s.trim().parse().ok()
+            } {
                 rpms.push(rpm);
             }
         }
@@ -51,11 +45,9 @@ fn get_fans(fan_paths: &[PathBuf], limit: usize) -> Fans {
 }
 
 pub(crate) fn get() -> String {
-    let fan_paths = sysfs::find_all_matches(PATTERN);
+    let fan_paths = sysfs::find_matches(PATTERN);
     if fan_paths.is_empty() {
         return String::from("rpm: no data");
     }
-
-    let fans = get_fans(&fan_paths, DEFAULT_LIMIT);
-    fans.to_string()
+    get_fans(&fan_paths, DEFAULT_LIMIT).to_string()
 }

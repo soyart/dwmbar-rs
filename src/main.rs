@@ -103,7 +103,7 @@ fn main() {
             Poller {
                 key: "brightness",
                 next_fire: now,
-                interval: Duration::from_secs(3),
+                interval: Duration::from_millis(500),
                 action: brightness::get,
             },
             Poller {
