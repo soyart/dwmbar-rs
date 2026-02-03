@@ -1,11 +1,8 @@
-use time::{
-    OffsetDateTime,
-    format_description,
-};
+use time::{OffsetDateTime, format_description};
 
-pub const CLOCK_DEFAULT: &str = "[weekday], [month repr:short] [day padding:zero] > [hour repr:24 padding:zero]:[minute padding:zero]";
+pub(crate) const CLOCK_DEFAULT: &str = "[weekday], [month repr:short] [day padding:zero] > [hour repr:24 padding:zero]:[minute padding:zero]";
 
-pub struct Clock {
+pub(crate) struct Clock {
     time: OffsetDateTime,
     format: String,
 }
@@ -22,13 +19,15 @@ impl std::fmt::Display for Clock {
     }
 }
 
-pub fn new_clock(format: &str) -> Clock {
-    Clock {
-        time: OffsetDateTime::now_local().unwrap(),
-        format: format.to_string(),
+impl Clock {
+    fn new(format: &str) -> Self {
+        Self {
+            time: OffsetDateTime::now_local().unwrap(),
+            format: format.to_string(),
+        }
     }
 }
 
 pub(crate) fn get(format: String) -> impl Fn() -> String {
-    move || new_clock(&format).to_string()
+    move || Clock::new(&format).to_string()
 }
