@@ -2,10 +2,7 @@ mod brightness;
 mod clock;
 mod fans;
 mod sysfs;
-use std::time::{
-    Duration,
-    Instant,
-};
+use std::time::{Duration, Instant};
 
 // Bar is our text-based status bar.
 // It heavily relies on String as means of abstraction
@@ -86,7 +83,7 @@ fn main() {
                 key: "fans",
                 next_fire: now,
                 interval: Duration::from_millis(500),
-                action: fans::get,
+                action: || fans::get(fans::DEFAULT_LIMIT)(),
             },
             Poller {
                 key: "brightness",

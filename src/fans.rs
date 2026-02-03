@@ -1,8 +1,8 @@
 use crate::sysfs;
 use std::path::PathBuf;
 
+pub(crate) const DEFAULT_LIMIT: usize = 2;
 const PATTERN: &str = "/sys/class/hwmon/hwmon*/fan*_input";
-const DEFAULT_LIMIT: usize = 2;
 
 // Fans represents RPM values for multiple fans
 pub(crate) struct Fans(pub(crate) Vec<u32>);
@@ -44,10 +44,13 @@ fn get_fans(fan_paths: &[PathBuf], limit: usize) -> Fans {
     Fans(rpms)
 }
 
-pub(crate) fn get() -> String {
-    let fan_paths = sysfs::find_matches(PATTERN);
-    if fan_paths.is_empty() {
-        return String::from("rpm: no data");
+pub(crate) fn get(limit: usize) -> impl Fn() -> String {
+    move || {
+        let fan_paths = sysfs::find_matches(PATTERN);
+        if fan_paths.is_empty() {
+            return String::from("rpm: no data");
+        }
+        let fans = get_fans(&fan_paths, limit);
+        fans.to_string()
     }
-    get_fans(&fan_paths, DEFAULT_LIMIT).to_string()
 }
