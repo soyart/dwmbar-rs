@@ -1,13 +1,33 @@
-use time::OffsetDateTime;
-use time::format_description;
+use time::{OffsetDateTime, format_description};
 
-pub(crate) fn get() -> String {
-    let format = format_description::parse(
-        "[weekday], [month repr:short] [day padding:zero] > [hour repr:24 padding:zero]:[minute padding:zero]"
-    ).unwrap();
-    
-    OffsetDateTime::now_local()
-        .unwrap()
-        .format(&format)
-        .unwrap()
+pub(crate) const CLOCK_DEFAULT: &str = "[weekday], [month repr:short] [day padding:zero] > [hour repr:24 padding:zero]:[minute padding:zero]";
+
+pub(crate) struct Clock {
+    time: OffsetDateTime,
+    format: String,
+}
+
+impl std::fmt::Display for Clock {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let clock_format = if self.format.is_empty() {
+            CLOCK_DEFAULT
+        } else {
+            &self.format
+        };
+        let format = format_description::parse(clock_format).unwrap();
+        write!(f, "{}", self.time.format(&format).unwrap())
+    }
+}
+
+impl Clock {
+    fn new(format: &str) -> Self {
+        Self {
+            time: OffsetDateTime::now_local().unwrap(),
+            format: format.to_string(),
+        }
+    }
+}
+
+pub(crate) fn get(format: String) -> impl Fn() -> String {
+    move || Clock::new(&format).to_string()
 }

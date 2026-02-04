@@ -2,10 +2,7 @@ mod brightness;
 mod clock;
 mod fans;
 mod sysfs;
-use std::time::{
-    Duration,
-    Instant,
-};
+use std::time::{Duration, Instant};
 
 // Bar is our text-based status bar.
 // It heavily relies on String as means of abstraction
@@ -26,17 +23,6 @@ impl<'a> std::fmt::Display for Bar<'a> {
     }
 }
 
-impl<'a> Bar<'a> {
-    fn update(&mut self, key: &'a str, value: String) {
-        for t in &mut self.values {
-            if t.0 == key {
-                t.1 = value.clone();
-                return;
-            }
-        }
-    }
-}
-
 struct Poller<'a> {
     key: &'a str,
     next_fire: Instant,
@@ -44,8 +30,10 @@ struct Poller<'a> {
     action: fn() -> String,
 }
 
-// run is a event-loop polling mechanism for our status bar.
-fn run(title: &str, mut pollers: Vec<Poller>) {
+// poll is a event-loop polling mechanism for our status bar.
+// Currently, dwmbar-rs only supports simple pollers.
+fn poll(title: &str, mut pollers: Vec<Poller>) {
+    let mut next = Instant::now(); // Next (i.e. earliest) call to poller
     let mut bar = Bar {
         title,
         values: pollers.iter().map(|t| (t.key, initializing())).collect(),
@@ -62,43 +50,40 @@ fn run(title: &str, mut pollers: Vec<Poller>) {
             if now < poller.next_fire {
                 continue;
             }
+            // New next_fire for poller
+            poller.next_fire = now + poller.interval;
+            if poller.next_fire < next {
+                next = poller.next_fire;
+            }
             // Only apply updates if field value changed from last
             let result = (poller.action)();
             if lasts[i] == result {
                 continue;
             }
+
             updated = true;
             lasts[i] = result.clone();
-            poller.next_fire = now + poller.interval;
-            bar.update(poller.key, result);
+            bar.values[i].1 = result;
         }
         if updated {
             println!("{}", bar);
         }
 
-        // Find the soonest next poller
-        let next = pollers.iter().map(|t| t.next_fire).min().unwrap();
         // Sleep until then (no busy-waiting)
-        std::thread::sleep(next - Instant::now());
+        std::thread::sleep(next - now);
     }
 }
 
 fn main() {
     let now = Instant::now();
-    run(
+    poll(
         "dwmbar-rs",
         vec![
-            Poller {
-                key: "key1",
-                next_fire: now,
-                interval: Duration::from_secs(1),
-                action: || String::from("key1 value"),
-            },
             Poller {
                 key: "fans",
                 next_fire: now,
                 interval: Duration::from_millis(500),
-                action: fans::get,
+                action: || fans::get(fans::DEFAULT_LIMIT)(),
             },
             Poller {
                 key: "brightness",
@@ -110,7 +95,7 @@ fn main() {
                 key: "clock",
                 next_fire: now,
                 interval: Duration::from_millis(500),
-                action: clock::get,
+                action: || clock::get(clock::CLOCK_DEFAULT.to_owned())(),
             },
         ],
     );
